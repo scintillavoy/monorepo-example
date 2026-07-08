@@ -1,0 +1,10 @@
+""""""
+
+# `ignore_directories` still allows directories to be walked when Bazel scans the repository for
+# build files. To completely ignore a directory, use `.bazelignore` instead. Refer to
+# https://github.com/bazelbuild/bazel/pull/24203#issuecomment-3499025997 for more details.
+ignore_directories(
+    [
+        "projects/non-bazel",  # A dummy directory to demonstrate how to ignore directories.
+    ],
+)

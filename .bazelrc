@@ -1,0 +1,10 @@
+# Refer to https://bazel.build/run/bazelrc#enable_platform_specific_config.
+common --enable_platform_specific_config
+
+# For build stamping:
+build --workspace_status_command=tools/get_workspace_status
+
+# Force Go binaries and tests to be fully static on Linux.
+build:linux --@rules_go//go/config:static
+
+build:linux --platforms=//platforms:linux_x86_64_musl

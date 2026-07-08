@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+if ! git_commit=$(git rev-parse HEAD); then
+    exit 1
+fi
+
+if git diff-index --quiet HEAD --; then
+    dirty=""
+else
+    dirty="-dirty"
+fi
+
+echo "STABLE_GIT_COMMIT ${git_commit}${dirty}"
+
+if [[ -n "${IMAGE_TAG:-}" ]]; then
+    echo "STABLE_IMAGE_TAG ${IMAGE_TAG}"
+fi

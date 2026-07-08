@@ -1,0 +1,156 @@
+""""""
+
+bazel_dep(name = "platforms", version = "1.0.0")
+
+####################################################################################################
+
+bazel_dep(name = "toolchains_musl", version = "0.1.27", dev_dependency = True)
+
+toolchains_musl = use_extension(
+    "@toolchains_musl//:toolchains_musl.bzl",
+    "toolchains_musl",
+    dev_dependency = True,
+)
+toolchains_musl.config(
+    extra_target_compatible_with = ["//linker_config:musl"],
+)
+
+####################################################################################################
+
+bazel_dep(name = "rules_cc", version = "0.2.14")
+
+####################################################################################################
+
+bazel_dep(name = "rules_img", version = "0.2.8")
+
+pull = use_repo_rule("@rules_img//img:pull.bzl", "pull")
+
+pull(
+    name = "distroless_base",
+    digest = "sha256:ccaef5ee2f1850270d453fdf700a5392534f8d1a8ca2acda391fbb6a06b81c86",
+    registry = "gcr.io",
+    repository = "distroless/base",
+)
+
+pull(
+    name = "distroless_cc",
+    digest = "sha256:0000f9dc0290f8eaf0ecceafbc35e803649087ea7879570fbc78372df7ac649b",
+    registry = "gcr.io",
+    repository = "distroless/cc",
+)
+
+####################################################################################################
+
+bazel_dep(name = "rules_rust", version = "0.67.0")
+
+# `RUST_EDITION` should be synced with `edition` in `Cargo.toml`.
+RUST_EDITION = "2024"
+
+# This should be synced with `mise.toml`.
+RUST_VERSION = "1.88.0"
+
+rust = use_extension("@rules_rust//rust:extensions.bzl", "rust")
+rust.toolchain(
+    edition = RUST_EDITION,
+    versions = [RUST_VERSION],
+)
+
+# This overrides a default rust_repository_set created by rust_register_toolchain. It must be named
+# exactly this. Each exec triple needs one of these calls per target triple it supports. The first
+# call needs all of the attrs, the subsequent calls should only set name, target_triple, and
+# target_compatible_with.
+rust.repository_set(
+    name = "rust_linux_x86_64",
+    edition = RUST_EDITION,
+    exec_triple = "x86_64-unknown-linux-gnu",
+    target_compatible_with = [
+        "@platforms//os:linux",
+        "@platforms//cpu:x86_64",
+        "//linker_config:unknown",
+    ],
+    target_triple = "x86_64-unknown-linux-gnu",
+    versions = [RUST_VERSION],
+)
+rust.repository_set(
+    name = "rust_linux_x86_64",
+    target_compatible_with = [
+        "@platforms//os:linux",
+        "@platforms//cpu:x86_64",
+        "//linker_config:musl",
+    ],
+    target_triple = "x86_64-unknown-linux-musl",
+)
+rust.repository_set(
+    name = "rust_linux_x86_64",
+    target_compatible_with = [
+        "@platforms//os:linux",
+        "@platforms//cpu:arm64",
+        "//linker_config:musl",
+    ],
+    target_triple = "aarch64-unknown-linux-musl",
+)
+
+# We don't need to register a repository_set for exec_triple == target_triple if we're not
+# customizing it in any way: one will get registered by default. But we do for the Linux case above,
+# because we want to add the `//linker_config:unknown` constraint in that case.
+rust.repository_set(
+    name = "rust_darwin_x86_64",
+    edition = RUST_EDITION,
+    exec_triple = "x86_64-apple-darwin",
+    target_compatible_with = [
+        "@platforms//os:linux",
+        "@platforms//cpu:x86_64",
+        "//linker_config:musl",
+    ],
+    target_triple = "x86_64-unknown-linux-musl",
+    versions = [RUST_VERSION],
+)
+rust.repository_set(
+    name = "rust_darwin_x86_64",
+    target_compatible_with = [
+        "@platforms//os:linux",
+        "@platforms//cpu:arm64",
+        "//linker_config:musl",
+    ],
+    target_triple = "aarch64-unknown-linux-musl",
+)
+rust.repository_set(
+    name = "rust_darwin_aarch64",
+    edition = RUST_EDITION,
+    exec_triple = "aarch64-apple-darwin",
+    target_compatible_with = [
+        "@platforms//os:linux",
+        "@platforms//cpu:x86_64",
+        "//linker_config:musl",
+    ],
+    target_triple = "x86_64-unknown-linux-musl",
+    versions = [RUST_VERSION],
+)
+rust.repository_set(
+    name = "rust_darwin_aarch64",
+    target_compatible_with = [
+        "@platforms//os:linux",
+        "@platforms//cpu:arm64",
+        "//linker_config:musl",
+    ],
+    target_triple = "aarch64-unknown-linux-musl",
+)
+
+crate = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate")
+crate.from_cargo(
+    name = "crates",
+    cargo_lockfile = "//:Cargo.lock",
+    manifests = ["//:Cargo.toml"],
+)
+use_repo(crate, "crates")
+
+####################################################################################################
+
+bazel_dep(name = "rules_go", version = "0.57.0")
+bazel_dep(name = "gazelle", version = "0.45.0")
+
+# go_sdk = use_extension("@rules_go//go:extensions.bzl", "go_sdk")
+# go_sdk.from_file(go_mod = "//:go.mod")
+
+# go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
+# go_deps.from_file(go_mod = "//:go.mod")
