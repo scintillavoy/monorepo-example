@@ -1,0 +1,5 @@
+"""
+`kafka.patch` fixes the following issue(s):
+
+- https://github.com/bazel-contrib/bazel-gazelle/issues/773
+"""

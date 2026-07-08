@@ -1,0 +1,32 @@
+load("@rules_img//img:image.bzl", "image_manifest")
+load("@rules_img//img:layer.bzl", "image_layer")
+load("@rules_img//img:push.bzl", "image_push")
+
+image_layer(
+    name = "app_layer",
+    srcs = {
+        "/app/api": "//projects/notes/cmd/api",
+    },
+)
+
+image_manifest(
+    name = "app_image",
+    base = "@distroless_base",
+    env = {
+        "GIT_COMMIT": "{{.STABLE_GIT_COMMIT}}",
+        "IMAGE_TAG": "{{.STABLE_IMAGE_TAG}}",
+    },
+    layers = [":app_layer"],
+    platform = "//platforms:linux_x86_64_musl",
+    stamp = "enabled",
+    working_dir = "/app",
+)
+
+image_push(
+    name = "push",
+    image = ":app_image",
+    registry = "registry.example.com",
+    repository = "monorepo-example/notes",
+    stamp = "enabled",
+    tag = "{{if .STABLE_IMAGE_TAG}}{{.STABLE_IMAGE_TAG}}{{else}}{{.STABLE_GIT_COMMIT}}{{end}}",
+)

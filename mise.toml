@@ -1,2 +1,3 @@
 [tools]
+go = "1.26.0"   # This should be synced with `go.mod`.
 rust = "1.88.0" # This should be synced with `MODULE.bazel`.

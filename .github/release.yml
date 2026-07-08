@@ -8,6 +8,9 @@ changelog:
     - title: todo
       labels:
         - "project: todo"
+    - title: notes
+      labels:
+        - "project: notes"
     # This should be the last.
     - title: Other Changes
       labels:

@@ -1,0 +1,8 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "notes",
+    srcs = ["store.go"],
+    importpath = "github.com/scintillavoy/monorepo-example/projects/notes/internal/notes",
+    visibility = ["//projects/notes:__subpackages__"],
+)

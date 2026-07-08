@@ -11,13 +11,13 @@ for app in "${applications[@]}"; do
                 cd "$kustomization_path"
                 kubectl apply -k . --context "$KUBE_CONTEXT"
             )
-            echo "✅ Applied $kustomization_path"
+            echo "Applied $kustomization_path"
         else
-            echo "⚠️ Warning: $kustomization_path not found"
+            echo "Warning: $kustomization_path not found"
         fi
     done
 done
 
-# kubectl rollout restart daemonset -n todo --context "$KUBE_CONTEXT"
-kubectl rollout restart deployment -n todo --context "$KUBE_CONTEXT"
-# kubectl rollout restart statefulset -n todo --context "$KUBE_CONTEXT"
+# kubectl rollout restart daemonset -n notes --context "$KUBE_CONTEXT"
+kubectl rollout restart deployment -n notes --context "$KUBE_CONTEXT"
+# kubectl rollout restart statefulset -n notes --context "$KUBE_CONTEXT"

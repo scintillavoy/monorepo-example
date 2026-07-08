@@ -4,4 +4,9 @@
     },
     "mise.configureExtensionsUseSymLinks": true,
     "mise.configureExtensionsAutomatically": false,
+    "go.goroot": "${workspaceFolder}/.vscode/mise-tools/goRoot",
+    "go.alternateTools": {
+        "go": "${workspaceFolder}/.vscode/mise-tools/go",
+        "dlv": "${workspaceFolder}/.vscode/mise-tools/dlv"
+    },
 }

@@ -1,0 +1,57 @@
+--- kafka/librdkafka_vendor/BUILD.bazel
++++ kafka/librdkafka_vendor/BUILD.bazel
+@@ -1,5 +1,35 @@
+ load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
++cc_library(
++    name = "librdkafka_static",
++    srcs = select({
++        "@io_bazel_rules_go//go/platform:android": [
++            "librdkafka_glibc_linux.a",
++        ],
++        "@io_bazel_rules_go//go/platform:darwin_amd64": [
++            "librdkafka_darwin_amd64.a",
++        ],
++        "@io_bazel_rules_go//go/platform:darwin_arm64": [
++            "librdkafka_darwin_arm64.a",
++        ],
++        "@io_bazel_rules_go//go/platform:ios_amd64": [
++            "librdkafka_darwin_amd64.a",
++        ],
++        "@io_bazel_rules_go//go/platform:ios_arm64": [
++            "librdkafka_darwin_arm64.a",
++        ],
++        "@io_bazel_rules_go//go/platform:linux": [
++            "librdkafka_musl_linux.a",
++        ],
++        "//conditions:default": [],
++    }),
++    hdrs = [
++        "rdkafka.h",
++        "rdkafka_mock.h",
++    ],
++    visibility = ["//visibility:public"],
++)
++
+ go_library(
+     name = "librdkafka_vendor",
+     srcs = [
+
+--- kafka/BUILD.bazel
++++ kafka/BUILD.bazel
+@@ -32,13 +32,14 @@
+         "testhelpers.go",
+         "time.go",
+     ],
++    cdeps = ["//kafka/librdkafka_vendor:librdkafka_static"],
+     cgo = True,
+     clinkopts = select({
+         "@io_bazel_rules_go//go/platform:android": [
+             "external/gazelle++go_deps+com_github_confluentinc_confluent_kafka_go/kafka/librdkafka_vendor/librdkafka_glibc_linux.a -lm -ldl -lpthread -lrt",
+         ],
+         "@io_bazel_rules_go//go/platform:linux": [
+-            "external/gazelle++go_deps+com_github_confluentinc_confluent_kafka_go/kafka/librdkafka_vendor/librdkafka_glibc_linux.a -lm -ldl -lpthread -lrt",
++            "external/gazelle++go_deps+com_github_confluentinc_confluent_kafka_go/kafka/librdkafka_vendor/librdkafka_musl_linux.a -lm -ldl -lpthread -lrt",
+         ],
+         "@io_bazel_rules_go//go/platform:windows": [
+             "external/gazelle++go_deps+com_github_confluentinc_confluent_kafka_go/kafka/librdkafka_vendor/librdkafka_windows.a -lws2_32 -lsecur32 -lcrypt32",

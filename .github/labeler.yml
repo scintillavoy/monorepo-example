@@ -7,6 +7,15 @@
       - all-globs-to-all-files:
           - projects/todo/**
 
+"project: notes":
+  - changed-files:
+      - all-globs-to-any-file:
+          - projects/notes/**
+          - "!projects/notes/deployment/**"
+          - "!projects/notes/.config/**"
+      - all-globs-to-all-files:
+          - projects/notes/**
+
 "db-migration":
   - changed-files:
       - any-glob-to-any-file:

@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+applications=(
+    "api"
+)
+for app in "${applications[@]}"; do
+    for kustomization_path in deployment/$app/overlay/$PHASE/$ENVIRONMENT; do
+        if [ -d "$kustomization_path" ]; then
+            (
+                cd "$kustomization_path"
+                kustomize edit set image "registry.example.com/monorepo-example/notes:$IMAGE_TAG"
+            )
+            echo "Updated $kustomization_path with version $IMAGE_TAG"
+        else
+            echo "Warning: $kustomization_path not found"
+        fi
+    done
+done

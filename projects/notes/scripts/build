@@ -5,7 +5,7 @@ if [[ "$PUSH" == "true" ]]; then
   echo "$REGISTRY_PASSWORD" | docker login registry.example.com \
     --username "$REGISTRY_USERNAME" \
     --password-stdin
-  bazel run //projects/todo:push --stamp
+  bazel run //projects/notes:push --stamp
 fi
 
 # Docker buildx alternative, kept as a reference for a Dockerfile-based build.
@@ -15,7 +15,7 @@ fi
 #   push_flag="--push"
 # fi
 #
-# repository=registry.example.com/monorepo-example/todo
+# repository=registry.example.com/monorepo-example/notes
 # image_name="$repository:$IMAGE_TAG"
 # docker buildx build \
 #   --cache-from "type=registry,ref=$repository:build-cache" \

@@ -4,16 +4,22 @@
         {
             "label": "bazel-build-dbg",
             "detail": "Build all bazel targets in debug mode",
-            "dependsOn": ["Start local environment"],
+            "dependsOn": [
+                "Start local environment"
+            ],
             "type": "shell",
             "command": "bazel",
-            "args": ["build", "--compilation_mode=dbg", "//..."],
+            "args": [
+                "build",
+                "--compilation_mode=dbg",
+                "//..."
+            ],
             "problemMatcher": []
         },
         {
             "label": "Start local environment",
             "type": "shell",
-            "command": "docker-compose up --wait",
+            "command": "if [ -f docker-compose.yaml ]; then docker-compose up --wait; fi",
             "options": {
                 "cwd": "${workspaceFolder}/projects/${input:project}/local"
             },
@@ -29,7 +35,7 @@
         {
             "label": "Stop local environment",
             "type": "shell",
-            "command": "docker-compose down",
+            "command": "if [ -f docker-compose.yaml ]; then docker-compose down; fi",
             "options": {
                 "cwd": "${workspaceFolder}/projects/${input:project}/local"
             },
@@ -45,7 +51,7 @@
         {
             "label": "Clean local environment",
             "type": "shell",
-            "command": "docker-compose down -v && rm -rf ./temp",
+            "command": "if [ -f docker-compose.yaml ]; then docker-compose down -v; fi; rm -rf ./temp",
             "options": {
                 "cwd": "${workspaceFolder}/projects/${input:project}/local"
             },

@@ -1,0 +1,9 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "tools",
+    srcs = ["go_deps.go"],
+    importpath = "github.com/scintillavoy/monorepo-example/projects/notes/tools",
+    visibility = ["//visibility:public"],
+    deps = ["@com_github_confluentinc_confluent_kafka_go//kafka"],
+)
