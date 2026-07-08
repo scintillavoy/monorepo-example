@@ -1,0 +1,47 @@
+name: Sanitize PR title
+
+on:
+  pull_request:
+    types:
+      - opened
+      - edited
+      - synchronize
+
+jobs:
+  sanitize:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      PR_TITLE: ${{ github.event.pull_request.title }}
+    steps:
+      - name: Set up GitHub CLI
+        run: |
+          echo $GH_TOKEN | gh auth login --with-token
+      - name: Sanitize PR title
+        run: |
+          # Remove non-printable characters.
+          SANITIZED_TITLE=$(printf "%s" "$PR_TITLE" | sed -e 's|[^[:print:]]||g')
+
+          # Trim any remaining leading/trailing whitespace.
+          SANITIZED_TITLE=$(printf "%s" "$SANITIZED_TITLE" | sed -e 's|^[[:space:]]*||' -e 's|[[:space:]]*$||')
+
+          echo " Original title: $PR_TITLE"
+          echo "Sanitized title: $SANITIZED_TITLE"
+
+          # Fail the check if the title is empty.
+          if [ -z "$SANITIZED_TITLE" ]; then
+            echo "PR title is empty after sanitization. Please provide a valid, readable title."
+            exit 1
+          fi
+
+          # Update the title if it was modified.
+          if [ "$PR_TITLE" != "$SANITIZED_TITLE" ]; then
+            echo "Non-printable or leading/trailing whitespace characters detected. Updating PR title..."
+            gh pr edit "$PR_NUMBER" --title "$SANITIZED_TITLE"
+          else
+            echo "Title is clean. No action needed."
+          fi

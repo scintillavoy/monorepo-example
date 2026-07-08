@@ -1,0 +1,53 @@
+name: Deploy to production
+
+on:
+  push:
+    tags:
+      - v*
+
+concurrency:
+  group: deploy-to-production-${{ github.ref || github.run_id }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  pull-requests: write
+  repository-projects: read
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      phase: ${{ steps.phase.outputs.phase }}
+      image_tag: ${{ steps.image_tag.outputs.image_tag }}
+    steps:
+      - name: Determine phase
+        id: phase
+        run: |
+          echo "phase=production" >> "$GITHUB_OUTPUT"
+      - name: Determine image tag
+        id: image_tag
+        run: |
+          IMAGE_TAG=$(echo "${{ github.ref }}" | sed 's|refs/tags/||')
+          echo "image_tag=$IMAGE_TAG" >> "$GITHUB_OUTPUT"
+  build:
+    needs:
+      - setup
+    uses: ./.github/workflows/build.yaml
+    secrets: inherit
+    with:
+      force: true
+      image_tag: ${{ needs.setup.outputs.image_tag }}
+      push: true
+      project: "*"
+  deploy:
+    needs:
+      - setup
+      - build
+    uses: ./.github/workflows/deploy.yaml
+    secrets: inherit
+    with:
+      image_tag: ${{ needs.setup.outputs.image_tag }}
+      phase: ${{ needs.setup.outputs.phase }}
+      environment: "*"
+      project: "*"

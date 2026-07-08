@@ -1,0 +1,96 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "bazel-build-dbg",
+            "detail": "Build all bazel targets in debug mode",
+            "dependsOn": ["Start local environment"],
+            "type": "shell",
+            "command": "bazel",
+            "args": ["build", "--compilation_mode=dbg", "//..."],
+            "problemMatcher": []
+        },
+        {
+            "label": "Start local environment",
+            "type": "shell",
+            "command": "docker-compose up --wait",
+            "options": {
+                "cwd": "${workspaceFolder}/projects/${input:project}/local"
+            },
+            "presentation": {
+                "reveal": "silent"
+            },
+            "problemMatcher": [],
+            "icon": {
+                "id": "run",
+                "color": "terminal.ansiGreen"
+            }
+        },
+        {
+            "label": "Stop local environment",
+            "type": "shell",
+            "command": "docker-compose down",
+            "options": {
+                "cwd": "${workspaceFolder}/projects/${input:project}/local"
+            },
+            "presentation": {
+                "reveal": "silent"
+            },
+            "problemMatcher": [],
+            "icon": {
+                "id": "debug-stop",
+                "color": "terminal.ansiRed"
+            }
+        },
+        {
+            "label": "Clean local environment",
+            "type": "shell",
+            "command": "docker-compose down -v && rm -rf ./temp",
+            "options": {
+                "cwd": "${workspaceFolder}/projects/${input:project}/local"
+            },
+            "presentation": {
+                "reveal": "silent"
+            },
+            "problemMatcher": [],
+            "icon": {
+                "id": "trash",
+                "color": "terminal.ansiRed"
+            }
+        },
+        {
+            "label": "Set command variables",
+            "type": "shell",
+            "command": "#",
+            "args": [
+                "${input:set-project}"
+            ],
+            "presentation": {
+                "reveal": "silent"
+            },
+            "problemMatcher": [],
+            "icon": {
+                "id": "variable-group"
+            }
+        }
+    ],
+    "inputs": [
+        {
+            "id": "set-project",
+            "type": "command",
+            "command": "extension.commandvariable.promptStringRemember",
+            "args": {
+                "key": "project",
+                "description": "Enter a project name"
+            }
+        },
+        {
+            "id": "project",
+            "type": "command",
+            "command": "extension.commandvariable.remember",
+            "args": {
+                "key": "project"
+            }
+        }
+    ]
+}

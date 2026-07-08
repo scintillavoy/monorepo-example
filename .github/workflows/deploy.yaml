@@ -1,0 +1,114 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: Image tag
+        required: true
+        type: string
+      phase:
+        description: Phase
+        required: true
+        type: choice
+        options:
+          - development
+          - cbt
+          - production
+      environment:
+        description: Environment (glob pattern)
+        required: true
+        default: "*"
+        type: string
+      project:
+        description: Project (glob pattern)
+        required: true
+        default: "*"
+        type: string
+  workflow_call:
+    inputs:
+      image_tag:
+        description: Image tag
+        required: true
+        type: string
+      phase:
+        description: Phase
+        required: true
+        type: string
+      environment:
+        description: Environment (glob pattern)
+        required: true
+        default: "*"
+        type: string
+      project:
+        description: Project (glob pattern)
+        required: true
+        default: "*"
+        type: string
+
+concurrency:
+  group: deploy-${{ github.ref || github.run_id }}-${{ inputs.phase }}-${{ inputs.environment }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  pull-requests: write
+  repository-projects: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      IMAGE_TAG: ${{ inputs.image_tag }}
+      PHASE: ${{ inputs.phase }}
+      ENVIRONMENT: ${{ inputs.environment }}
+      PROJECT: ${{ inputs.project }}
+      # Refer to https://github.com/orgs/community/discussions/65321.
+      GH_TOKEN: ${{ secrets.BOT_PAT }}
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          ref: main
+      - name: Set up GitHub CLI
+        run: |
+          echo $GH_TOKEN | gh auth login --with-token
+      - name: Run deploy task
+        run: |
+          for dir in projects/${PROJECT}/; do
+            [ -d "$dir" ] || continue
+            echo "Deploying $dir..."
+            (cd "$dir" && ./scripts/deploy)
+          done
+      - name: Try deploy
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          DEPLOYMENT_BRANCH=deployment-$(date -u +"%Y%m%dT%H%M%SZ")
+          echo "DEPLOYMENT_BRANCH=$DEPLOYMENT_BRANCH" >> $GITHUB_ENV
+          git checkout -b "$DEPLOYMENT_BRANCH"
+          git add .
+          git commit -m "Deploy $IMAGE_TAG to $PHASE"
+          git push origin "$DEPLOYMENT_BRANCH"
+      - name: Create PR
+        run: |
+          TEMPLATE_PATH=.github/PULL_REQUEST_TEMPLATE/deployment.md
+          if [[ -f "$TEMPLATE_PATH" ]]; then
+            sed -e "s|{{ IMAGE_TAG }}|$IMAGE_TAG|g" \
+                -e "s|{{ PHASE }}|$PHASE|g" \
+                -e "s|{{ ENVIRONMENT }}|$ENVIRONMENT|g" \
+                -e "s|{{ PROJECT }}|$PROJECT|g" \
+                -e "s|{{ DESCRIPTION: .* }}|Please verify the deployment.|g" \
+                "$TEMPLATE_PATH" > pr_body.txt
+          else
+            echo "Deployment of $IMAGE_TAG to $PHASE" > pr_body.txt
+          fi
+          PR_URL=$(gh pr create \
+            --title "[Deployment] $IMAGE_TAG to $PHASE" \
+            --body-file pr_body.txt \
+            --base main \
+            --head "$DEPLOYMENT_BRANCH")
+          gh label create "deployment: $PHASE" \
+            --description "Deployment to $PHASE" \
+            --color 207de5 \
+            --force
+          gh pr edit "$PR_URL" --add-label "deployment: $PHASE"

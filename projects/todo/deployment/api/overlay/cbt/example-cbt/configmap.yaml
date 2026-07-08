@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: todo
+  name: todo-api-config
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+data:
+  config.yaml: |
+    vault_address: https://vault.example.com
+    vault_path: todo/example-cbt
+    log_level: info
+    otel_service_name: todo-api
+    otel_endpoint: http://otel-collector.todo.svc.cluster.local:4318
+    otel_trace_sampling_ratio: 0.01
+    custom_attribute: example-cbt
+    sentry_dsn: ""
+    mysql_host: todo-mysql.todo.svc.cluster.local
+    mysql_port: 3306
+    mysql_username: todo
+    mysql_database: todo
+    request_timeout_seconds: 30
+    swagger_enabled: false

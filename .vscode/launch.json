@@ -1,0 +1,40 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch the current opened file (Rust)",
+            "type": "lldb",
+            "request": "launch",
+            "preLaunchTask": "bazel-build-dbg",
+            "program": "${workspaceFolder}/bazel-bin/${relativeFileDirname}/../../${fileBasenameNoExtension}",
+            "args": [],
+            "sourceLanguages": ["rust"],
+            "sourceMap": {
+                ".": "${workspaceFolder}"
+            },
+            "terminal": "console",
+            "gracefulShutdown": "SIGTERM",
+            "cwd": "${workspaceFolder}/projects/${input:project}",
+            "env": {
+                "CONFIG_PATH": "${workspaceFolder}/projects/${input:project}/local/${fileBasenameNoExtension}_config.yaml",
+                "SECRET_PATH": "${workspaceFolder}/projects/${input:project}/local/secret.yaml"
+            }
+        }
+    ],
+    "inputs": [
+        {
+            "id": "project",
+            "type": "command",
+            "command": "extension.commandvariable.transform",
+            "args": {
+                "key": "project",
+                "text": "${relativeFileDirname}",
+                "find": "projects${pathSeparator}([^${pathSeparator}]+).*",
+                "replace": "$1"
+            }
+        }
+    ]
+}

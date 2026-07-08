@@ -1,0 +1,115 @@
+name: Cherry-pick to release branch
+
+on:
+  pull_request_target:
+    types:
+      - labeled
+      - closed
+
+permissions:
+  contents: write
+  pull-requests: write
+  repository-projects: read
+
+jobs:
+  get-labels:
+    runs-on: ubuntu-latest
+    outputs:
+      labels: ${{ steps.extract-labels.outputs.labels }}
+    steps:
+      - name: Extract Cherry-pick Labels
+        id: extract-labels
+        run: |
+          if [[ "${{ github.event.action }}" == "labeled" ]]; then
+            if [[ "${{ github.event.label.name }}" == "cp: "* ]]; then
+              echo "[\"${{ github.event.label.name }}\"]" > labels.json
+            else
+              echo "[]" > labels.json
+            fi
+          else
+            jq '[.[] | select(.name | startswith("cp: ")) | .name]' > labels.json <<EOF
+          ${{ toJson(github.event.pull_request.labels) }}
+          EOF
+          fi
+          echo "labels<<EOF" >> "$GITHUB_OUTPUT"
+          cat labels.json >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+  cherry-pick:
+    needs: get-labels
+    if: needs.get-labels.outputs.labels != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        label: ${{ fromJson(needs.get-labels.outputs.labels) }}
+    env:
+      COMMIT_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+      PR_TITLE: ${{ github.event.pull_request.title }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      ACTOR: ${{ github.actor }}
+      LABEL_NAME: ${{ matrix.label }}
+      # Refer to https://github.com/orgs/community/discussions/65321.
+      GH_TOKEN: ${{ secrets.BOT_PAT }}
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          fetch-depth: 0
+      - name: Set up GitHub CLI
+        run: |
+          echo $GH_TOKEN | gh auth login --with-token
+      - name: Set environment variables
+        run: |
+          VERSION=${LABEL_NAME#cp: }
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "RELEASE_BRANCH=release/$VERSION" >> $GITHUB_ENV
+          echo "CP_BRANCH=cp-${VERSION}-${COMMIT_SHA}" >> $GITHUB_ENV
+      - name: Update CP label
+        run: |
+          gh label create "$LABEL_NAME" \
+            --description "Cherry-pick this pull request to $RELEASE_BRANCH" \
+            --color c2e0c6 \
+            --force
+      - name: Try CP
+        id: try-cp
+        if: ${{ github.event.pull_request.merged == true }}
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin $RELEASE_BRANCH
+          git checkout -b $CP_BRANCH origin/$RELEASE_BRANCH
+          git cherry-pick $COMMIT_SHA
+          git push origin $CP_BRANCH
+
+          # Generate PR body.
+          TEMPLATE_PATH=.github/PULL_REQUEST_TEMPLATE/cherry-pick.md
+          if [[ -f "$TEMPLATE_PATH" ]]; then
+            sed -e "s|{{ PR_NUMBER }}|$PR_NUMBER|g" \
+                -e "s|{{ ACTOR }}|$ACTOR|g" \
+                "$TEMPLATE_PATH" > pr_body.txt
+          else
+            echo "Cherry-pick of #$PR_NUMBER by @$ACTOR" > pr_body.txt
+          fi
+
+          # Create PR.
+          PR_URL=$(gh pr create \
+            --title "[CP-$VERSION] $PR_TITLE" \
+            --body-file pr_body.txt \
+            --base $RELEASE_BRANCH \
+            --head $CP_BRANCH)
+          gh label create "cp-picked: $VERSION" \
+            --description "Cherry-picks that should be merged to $RELEASE_BRANCH" \
+            --color c2e0c6 \
+            --force
+          gh pr edit "$PR_URL" --add-label "cp-picked: $VERSION"
+          echo "PR_URL=$PR_URL" >> $GITHUB_ENV
+      - name: Leave comment on CP success
+        if: ${{ steps.try-cp.conclusion == 'success' }}
+        run: |
+          NEW_PR_NUMBER="${PR_URL##*/}"
+          gh pr comment $PR_NUMBER \
+            -b "✅ Successfully cherry-picked to \`$RELEASE_BRANCH\`: #$NEW_PR_NUMBER"
+      - name: Leave comment on CP failure
+        if: ${{ failure() }}
+        run: |
+          gh pr comment $PR_NUMBER \
+            -b "❌ Cherry-pick to \`$RELEASE_BRANCH\` failed. @$ACTOR Please cherry-pick manually."

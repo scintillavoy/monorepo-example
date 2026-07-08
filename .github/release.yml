@@ -1,0 +1,14 @@
+changelog:
+  exclude:
+    labels:
+      - "deployment: development"
+      - "deployment: cbt"
+      - "deployment: production"
+  categories:
+    - title: todo
+      labels:
+        - "project: todo"
+    # This should be the last.
+    - title: Other Changes
+      labels:
+        - "*"

@@ -1,0 +1,7 @@
+[package]
+name = "http-util"
+edition.workspace = true
+repository.workspace = true
+
+[dependencies]
+axum.workspace = true

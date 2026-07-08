@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "$REGISTRY_PASSWORD" | docker login registry.example.com \
+  --username "$REGISTRY_USERNAME" \
+  --password-stdin
+push_flag=""
+if [[ "$PUSH" == "true" ]]; then
+  bazel run //projects/todo:push --stamp
+fi
+
+# Docker buildx alternative, kept as a reference for a Dockerfile-based build.
+#
+# push_flag=""
+# if [[ "$PUSH" == "true" ]]; then
+#   push_flag="--push"
+# fi
+#
+# repository=registry.example.com/monorepo-example/todo
+# image_name="$repository:$IMAGE_TAG"
+# docker buildx build \
+#   --cache-from "type=registry,ref=$repository:build-cache" \
+#   --cache-to "type=registry,ref=$repository:build-cache,mode=max" \
+#   --build-arg GIT_COMMIT="$GIT_COMMIT" \
+#   --build-arg IMAGE_TAG="$IMAGE_TAG" \
+#   $push_flag \
+#   -t "$image_name" .

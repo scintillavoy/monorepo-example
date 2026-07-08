@@ -1,0 +1,2 @@
+[tools]
+rust = "1.88.0" # This should be synced with `MODULE.bazel`.

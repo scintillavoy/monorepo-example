@@ -1,0 +1,56 @@
+load("@crates//:defs.bzl", "all_crate_deps")
+load("@rules_img//img:image.bzl", "image_manifest")
+load("@rules_img//img:layer.bzl", "image_layer")
+load("@rules_img//img:push.bzl", "image_push")
+load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_library")
+
+rust_binary(
+    name = "api",
+    srcs = ["src/bin/api.rs"],
+    deps = [
+        "//libs/http-util/rust:http-util",
+        "//libs/otel/rust:otel",
+        "//libs/shutdown/rust:shutdown",
+        "//projects/todo",
+    ] + all_crate_deps(normal = True),
+)
+
+rust_library(
+    name = "todo",
+    srcs = glob(
+        ["src/**/*.rs"],
+        exclude = [
+            "src/bin/**",
+        ],
+    ),
+    deps = all_crate_deps(normal = True),
+)
+
+image_layer(
+    name = "app_layer",
+    srcs = {
+        "/app/api": "//projects/todo:api",
+    },
+)
+
+image_manifest(
+    name = "app_image",
+    base = "@distroless_cc",
+    env = {
+        "GIT_COMMIT": "{{.STABLE_GIT_COMMIT}}",
+        "IMAGE_TAG": "{{.STABLE_IMAGE_TAG}}",
+    },
+    layers = [":app_layer"],
+    platform = "//platforms:linux_x86_64_musl",
+    stamp = "enabled",
+    working_dir = "/app",
+)
+
+image_push(
+    name = "push",
+    image = ":app_image",
+    registry = "registry.example.com",
+    repository = "monorepo-example/todo",
+    stamp = "enabled",
+    tag = "{{if .STABLE_IMAGE_TAG}}{{.STABLE_IMAGE_TAG}}{{else}}{{.STABLE_GIT_COMMIT}}{{end}}",
+)

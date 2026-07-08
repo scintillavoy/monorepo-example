@@ -1,0 +1,6 @@
+"""
+`utoipa-swagger-ui.patch` fixes the following issue(s):
+
+- https://github.com/juhaku/utoipa/issues/1151
+- https://github.com/bazelbuild/rules_rust/issues/3100
+"""

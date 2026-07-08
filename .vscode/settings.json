@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "**/projects/*/scripts/*": "shellscript"
+    },
+    "mise.configureExtensionsUseSymLinks": true,
+    "mise.configureExtensionsAutomatically": false,
+}

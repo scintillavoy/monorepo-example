@@ -1,0 +1,72 @@
+[workspace]
+resolver = "3"
+members = [
+    "libs/clock/rust",
+    "libs/otel/rust",
+    "libs/http-util/rust",
+    "libs/shutdown/rust",
+    "projects/todo",
+]
+
+[workspace.package]
+# `edition` should be synced with `RUST_EDITION` in `MODULE.bazel`.
+edition = "2024"
+repository = "https://github.com/scintillavoy/monorepo-example"
+
+[workspace.dependencies]
+anyhow = "=1.0.99"
+axum = "=0.8.4"
+axum-otel-metrics = "=0.13.0"
+axum-tracing-opentelemetry = "=0.33.0"
+chrono = { version = "=0.4.43", features = ["serde"] }
+config = "=0.15.13"
+http-util = { path = "libs/http-util/rust" }
+opentelemetry = "=0.31.0"
+opentelemetry-appender-tracing = "=0.31.1"
+opentelemetry-otlp = "=0.31.0"
+opentelemetry_sdk = "=0.31.0"
+otel = { path = "libs/otel/rust" }
+rust-embed = { version = "=8.11.0", features = ["interpolate-folder-path"] }
+sea-query = "=0.31.1"
+sea-query-binder = { version = "=0.6.0-rc.4", features = [
+    "sqlx-mysql",
+    "with-chrono",
+    "with-uuid",
+] }
+sentry = { version = "=0.46.2", default-features = false, features = [
+    "backtrace",
+    "contexts",
+    "debug-images",
+    "panic",
+    "release-health",
+    "reqwest",
+    "rustls",
+    "tower",
+    "tracing",
+] }
+serde = { version = "=1.0.228", features = ["derive"] }
+serde_json = "=1.0.149"
+serde_with = "=3.16.1"
+shutdown = { path = "libs/shutdown/rust" }
+sqlx = { version = "=0.7.4", features = [
+    "runtime-tokio",
+    "tls-rustls",
+    "mysql",
+    "chrono",
+    "uuid",
+] }
+tokio = { version = "=1.47.1", features = ["full"] }
+tokio-util = "=0.7.18"
+tower = "=0.5.3"
+tower-http = { version = "=0.6.8", features = ["cors", "timeout"] }
+tracing = "=0.1.44"
+tracing-opentelemetry = "=0.32.1"
+tracing-subscriber = { version = "=0.3.22", features = ["env-filter"] }
+utoipa = { version = "=5.4.0", features = ["axum_extras"] }
+utoipa-axum = "=0.2.0"
+utoipa-swagger-ui = { version = "=9.0.2", features = [
+    "axum",
+    "debug-embed",
+    "vendored",
+] }
+vaultrs = "=0.7.4"

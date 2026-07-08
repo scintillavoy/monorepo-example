@@ -1,0 +1,62 @@
+name: Restart
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment (glob pattern)
+        required: true
+        default: "*"
+        type: string
+      project:
+        description: Project (glob pattern)
+        required: true
+        default: "*"
+        type: string
+  workflow_call:
+    inputs:
+      environment:
+        description: Environment (glob pattern)
+        required: true
+        default: "*"
+        type: string
+      project:
+        description: Project (glob pattern)
+        required: true
+        default: "*"
+        type: string
+
+concurrency:
+  group: restart
+  cancel-in-progress: true
+
+jobs:
+  restart:
+    runs-on: ubuntu-latest
+    env:
+      PHASE: development
+      ENVIRONMENT: ${{ inputs.environment }}
+      PROJECT: ${{ inputs.project }}
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - name: Restart
+        run: |
+          kubectl config set-credentials github-actions[bot]_example-dev \
+            --token=${{ secrets.KUBE_TOKEN_EXAMPLE_DEV }}
+
+          kubectl config set-cluster example-dev-cluster \
+            --insecure-skip-tls-verify=true \
+            --server ${{ secrets.KUBE_SERVER_EXAMPLE_DEV }}
+
+          kubectl config set-context example-dev-context \
+            --cluster=example-dev-cluster \
+            --user=github-actions[bot]_example-dev
+
+          contexts=("example-dev-context")
+          for dir in projects/${PROJECT}/; do
+            [ -d "$dir" ] || continue
+            for context in "${contexts[@]}"; do
+              echo "Restarting $dir in $context..."
+              (cd "$dir" && KUBE_CONTEXT=$context ./scripts/restart)
+            done
+          done

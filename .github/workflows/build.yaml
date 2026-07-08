@@ -1,0 +1,152 @@
+name: Build
+
+on:
+  pull_request:
+  merge_group:
+    types:
+      - checks_requested
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Force (run regardless of changes)
+        required: false
+        default: true
+        type: boolean
+      ref:
+        description: Git ref (branch, tag, or SHA) to build
+        required: true
+        type: string
+      image_tag:
+        description: Image tag
+        required: true
+        type: string
+      project:
+        description: Project (glob pattern)
+        required: true
+        default: "*"
+        type: string
+      push:
+        description: Push to registry
+        required: false
+        default: false
+        type: boolean
+  workflow_call:
+    inputs:
+      force:
+        description: Force (run regardless of changes)
+        required: false
+        default: false
+        type: boolean
+      image_tag:
+        description: Image tag
+        required: true
+        type: string
+      project:
+        description: Project (glob pattern)
+        required: true
+        default: "*"
+        type: string
+      push:
+        description: Push to registry
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: build-${{ github.ref || github.run_id }}-${{ inputs.image_tag }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      source_code: ${{ steps.filter.outputs.source_code }}
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          ref: ${{ inputs.ref }}
+      - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
+        id: filter
+        with:
+          predicate-quantifier: "every"
+          filters: |
+            source_code:
+              - '!projects/*/deployment/**'
+  setup:
+    needs: changes
+    if: ${{ inputs.force || needs.changes.outputs.source_code == 'true' }}
+    runs-on: ubuntu-latest
+    outputs:
+      git_commit: ${{ steps.git_commit.outputs.git_commit }}
+      image_tag: ${{ steps.image_tag.outputs.image_tag }}
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          ref: ${{ inputs.ref }}
+      - name: Determine Git commit
+        id: git_commit
+        run: |
+          GIT_COMMIT=$(git rev-parse HEAD)
+          echo "git_commit=$GIT_COMMIT" >> "$GITHUB_OUTPUT"
+      - name: Determine image tag
+        id: image_tag
+        run: |
+          if [[ -n "${{ inputs.image_tag }}" ]]; then
+            IMAGE_TAG=${{ inputs.image_tag }}
+          else
+            IMAGE_TAG=${{ github.sha }}
+          fi
+          echo "image_tag=$IMAGE_TAG" >> "$GITHUB_OUTPUT"
+  build:
+    needs: setup
+    runs-on: ubuntu-latest
+    env:
+      BAZELISK_VERSION: 1.27.0
+      REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
+      REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+      GIT_COMMIT: ${{ needs.setup.outputs.git_commit }}
+      IMAGE_TAG: ${{ needs.setup.outputs.image_tag }}
+      PROJECT: ${{ inputs.project || '*' }}
+      PUSH: ${{ inputs.push }}
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          ref: ${{ inputs.ref }}
+      - uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+      - name: Set up local bin directory
+        run: |
+          BIN_DIR="$HOME/.local/bin"
+          echo "BIN_DIR=$BIN_DIR" >> $GITHUB_ENV
+          echo "$BIN_DIR" >> $GITHUB_PATH
+      - name: Restore Bazelisk from cache
+        id: cache-bazelisk
+        uses: actions/cache@ab5e6d0c87105b4c9c2047343972218f562e4319 # v4.0.1
+        with:
+          path: ${{ env.BIN_DIR }}/bazel
+          key: bazelisk-${{ runner.os }}-${{ env.BAZELISK_VERSION }}
+      - name: Install Bazelisk
+        if: steps.cache-bazelisk.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ${BIN_DIR}
+          curl -x ${HTTPS_PROXY} -L -o ${BIN_DIR}/bazel \
+            https://github.com/bazelbuild/bazelisk/releases/download/v${BAZELISK_VERSION}/bazelisk-linux-amd64
+          chmod +x ${BIN_DIR}/bazel
+      - uses: bazel-contrib/setup-bazel@083175551ceeceebc757ebee2127fde78840ca77 # 0.18.0
+        with:
+          bazelisk-cache: true
+          disk-cache: true
+          repository-cache: true
+          cache-save: ${{ github.ref == 'refs/heads/main' }}
+      - name: Build and test
+        run: |
+          bazel build -c opt //...
+          bazel test --test_output=errors -c opt //...
+          for dir in projects/${PROJECT}/; do
+            [ -d "$dir" ] || continue
+            echo "Building $dir..."
+            (cd "$dir" && ./scripts/build)
+          done

@@ -1,0 +1,11 @@
+{
+    "recommendations": [
+        "BazelBuild.vscode-bazel",
+        "golang.go",
+        "hverlin.mise-vscode",
+        "rioj7.command-variable",
+        "rust-lang.rust-analyzer",
+        "timonwong.shellcheck",
+        "vadimcn.vscode-lldb",
+    ]
+}

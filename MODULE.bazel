@@ -142,6 +142,10 @@ crate.from_cargo(
     cargo_lockfile = "//:Cargo.lock",
     manifests = ["//:Cargo.toml"],
 )
+crate.annotation(
+    crate = "utoipa-swagger-ui",
+    patches = ["//third_party/utoipa-swagger-ui:utoipa-swagger-ui.patch"],
+)
 use_repo(crate, "crates")
 
 ####################################################################################################

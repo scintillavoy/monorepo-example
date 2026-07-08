@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+applications=(
+    "api"
+)
+for app in "${applications[@]}"; do
+    for kustomization_path in deployment/$app/overlay/$PHASE/$ENVIRONMENT; do
+        if [ -d "$kustomization_path" ]; then
+            (
+                cd "$kustomization_path"
+                kubectl apply -k . --context "$KUBE_CONTEXT"
+            )
+            echo "✅ Applied $kustomization_path"
+        else
+            echo "⚠️ Warning: $kustomization_path not found"
+        fi
+    done
+done
+
+kubectl rollout restart daemonset -n todo --context "$KUBE_CONTEXT"
+kubectl rollout restart deployment -n todo --context "$KUBE_CONTEXT"
+kubectl rollout restart statefulset -n todo --context "$KUBE_CONTEXT"

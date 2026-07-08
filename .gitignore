@@ -108,3 +108,5 @@ target/
 .ionide
 
 # End of https://www.toptal.com/developers/gitignore/api/macos,visualstudiocode,go,rust,bazel
+
+projects/*/local/temp

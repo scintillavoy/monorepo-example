@@ -1,0 +1,13 @@
+"project: todo":
+  - changed-files:
+      - all-globs-to-any-file:
+          - projects/todo/**
+          - "!projects/todo/deployment/**"
+          - "!projects/todo/.config/**"
+      - all-globs-to-all-files:
+          - projects/todo/**
+
+"db-migration":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "projects/*/migrations/*.sql"

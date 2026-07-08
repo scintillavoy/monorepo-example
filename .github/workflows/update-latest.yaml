@@ -1,0 +1,32 @@
+name: Update latest image
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: update-latest
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  build:
+    uses: ./.github/workflows/build.yaml
+    secrets: inherit
+    with:
+      force: false
+      image_tag: latest
+      push: true
+      project: "*"
+  restart:
+    needs: build
+    if: ${{ !cancelled() }}
+    uses: ./.github/workflows/restart.yaml
+    secrets: inherit
+    with:
+      environment: "*"
+      project: "*"

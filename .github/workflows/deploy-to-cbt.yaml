@@ -1,0 +1,55 @@
+name: Deploy to cbt
+
+on:
+  push:
+    branches:
+      - release/*
+
+concurrency:
+  group: deploy-to-cbt-${{ github.ref || github.run_id }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  pull-requests: write
+  repository-projects: read
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      phase: ${{ steps.phase.outputs.phase }}
+      image_tag: ${{ steps.image_tag.outputs.image_tag }}
+    steps:
+      - name: Determine phase
+        id: phase
+        run: |
+          echo "phase=cbt" >> "$GITHUB_OUTPUT"
+      - name: Determine image tag
+        id: image_tag
+        run: |
+          VERSION=$(echo "${{ github.ref_name }}" | sed 's|release/||')
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-5)
+          IMAGE_TAG="v${VERSION}-${SHORT_SHA}"
+          echo "image_tag=$IMAGE_TAG" >> "$GITHUB_OUTPUT"
+  build:
+    needs:
+      - setup
+    uses: ./.github/workflows/build.yaml
+    secrets: inherit
+    with:
+      force: true
+      image_tag: ${{ needs.setup.outputs.image_tag }}
+      push: true
+      project: "*"
+  deploy:
+    needs:
+      - setup
+      - build
+    uses: ./.github/workflows/deploy.yaml
+    secrets: inherit
+    with:
+      image_tag: ${{ needs.setup.outputs.image_tag }}
+      phase: ${{ needs.setup.outputs.phase }}
+      environment: "*"
+      project: "*"
