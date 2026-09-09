@@ -1,5 +1,20 @@
 # Development setup
 
+## Build systems and toolchains
+
+This repository intentionally supports both Bazel and each language's native tooling. Bazel is the authoritative build system: CI uses it to build and test the repository, and release artifacts such as binaries and container images are produced from Bazel targets.
+
+Language-native build configurations are kept alongside Bazel because many editors, language servers, and development tools do not integrate with Bazel reliably. Prefer Bazel-managed tooling when available, and use the native configurations for tools that require them.
+
+The build metadata has distinct responsibilities:
+
+- `BUILD.bazel` files define Bazel targets and their direct dependencies.
+- `Cargo.toml` and `Cargo.lock` define the Rust workspace and dependency versions. Bazel also reads them through `crate.from_cargo` in `MODULE.bazel`.
+- `go.mod` and `go.sum` define the Go module and dependency versions. Bazel also reads `go.mod` through `rules_go` and Gazelle in `MODULE.bazel`.
+- `mise.toml` installs native development toolchains. Keep versions declared in multiple configuration files synchronized, as noted in those files.
+
+When target structure or dependencies change, update both the native metadata and the corresponding Bazel targets. Checks performed by native tooling do not replace the Bazel checks described in [Submitting changes](contributing.md).
+
 ## Docker
 
 - [Docker Desktop](https://docs.docker.com/desktop/setup/install/mac-install/)
