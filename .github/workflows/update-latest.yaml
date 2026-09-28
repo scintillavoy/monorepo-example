@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - projects/*/deployment/**
 
 concurrency:
   group: update-latest
@@ -18,7 +20,7 @@ jobs:
     uses: ./.github/workflows/build.yaml
     secrets: inherit
     with:
-      force: false
+      force: true
       image_tag: latest
       push: true
       project: "*"
