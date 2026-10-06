@@ -20,8 +20,8 @@ jobs:
     with:
       force: true
       image_tag: latest
-      push: true
       project: "*"
+      push: true
   restart:
     needs: build
     uses: ./.github/workflows/restart.yaml
