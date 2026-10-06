@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - main
-    paths-ignore:
-      - projects/*/deployment/**
 
 concurrency:
   group: update-latest
@@ -26,7 +24,6 @@ jobs:
       project: "*"
   restart:
     needs: build
-    if: ${{ !cancelled() }}
     uses: ./.github/workflows/restart.yaml
     secrets: inherit
     with:
